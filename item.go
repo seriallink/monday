@@ -23,7 +23,7 @@ type Item struct {
 	//Subitems []Item `json:"subitems" graphql:"subitems"`
 	//Subscribers     []User        `json:"subscribers"       graphql:"subscribers"`
 	UpdatedAt time.Time `json:"updated_at" graphql:"updated_at"`
-	Updates   []Update  `json:"updates"           graphql:"updates"`
+	Updates   []Update  `json:"updates"    graphql:"updates"`
 }
 
 type ItemsArguments struct {
@@ -44,11 +44,12 @@ func (c *Client) GetItems(arguments *ItemsArguments) ([]Item, error) {
 }
 
 // GetBoardItems returns all Items for a specific board.
-func (c *Client) GetBoardItems(boardId ID, arguments *ItemsPageArguments) ([]Item, error) {
+func (c *Client) GetBoardItems(boardId ID, arguments *ItemsPageArguments) (string, []Item, error) {
 	var response struct {
 		Boards []struct {
 			ItemsPage struct {
-				Items []Item `json:"items" graphql:"items"`
+				Cursor string `json:"cursor" graphql:"cursor"`
+				Items  []Item `json:"items"  graphql:"items"`
 			} `json:"items_page" graphql:"items_page(cursor: $cursor, limit: $limit, query_params: $query_params)"`
 		} `json:"boards" graphql:"boards(ids: $board_ids)"`
 	}
@@ -56,9 +57,9 @@ func (c *Client) GetBoardItems(boardId ID, arguments *ItemsPageArguments) ([]Ite
 	args["board_ids"] = []ID{boardId}
 	err := c.RunQuery(&response, args)
 	if len(response.Boards) == 0 {
-		return nil, err
+		return "", nil, err
 	}
-	return response.Boards[0].ItemsPage.Items, err
+	return response.Boards[0].ItemsPage.Cursor, response.Boards[0].ItemsPage.Items, err
 }
 
 // GetSubItems returns all sub items for a specific item.
